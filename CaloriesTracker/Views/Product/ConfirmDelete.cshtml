@@ -1,0 +1,29 @@
+﻿@model Product
+
+@{
+    ViewData["Title"] = "Confirm Deletion";
+}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card shadow-lg border-danger" style="max-width: 500px; width: 100%;">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Confirm Deletion</h5>
+        </div>
+        <div class="card-body text-center">
+            <p class="lead mb-4">
+                Are you sure you want to delete <strong>@Model.Name</strong>?
+            </p>
+            <form asp-action="Delete" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="d-flex justify-content-around">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Yes, delete
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

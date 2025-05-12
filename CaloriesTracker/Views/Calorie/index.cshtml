@@ -1,0 +1,175 @@
+﻿@using CaloriesTracker.Services
+@model CalorieService.DailySummary
+
+@{
+    ViewData["Title"] = "Daily Intake";
+    var date = ViewBag.Date as DateTime? ?? DateTime.Today;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>Daily Intake - @date.ToString("MMMM d, yyyy")</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>Calories</h5>
+                        <div class="progress mb-3">
+                            @{
+                                var progressPercentage = Math.Min(100, (int)(Model.TotalCalories / Model.DailyGoal * 100));
+                            }
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: @progressPercentage%"
+                                 aria-valuenow="@progressPercentage"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                @((int)Model.TotalCalories)/@((int)Model.DailyGoal)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-4 text-center">
+                                <h6>Protein</h6>
+                                <p class="text-primary">@Model.TotalProtein.ToString("F1")g</p>
+                            </div>
+                            <div class="col-4 text-center">
+                                <h6>Fat</h6>
+                                <p class="text-warning">@Model.TotalFat.ToString("F1")g</p>
+                            </div>
+                            <div class="col-4 text-center">
+                                <h6>Carbs</h6>
+                                <p class="text-success">@Model.TotalCarbs.ToString("F1")g</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Add Food</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddIntakeWithDate" method="post">
+                    <div class="mb-3">
+                        <label for="intakeDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="intakeDate" name="intakeDate"
+                               value="@date.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="mb-3">
+                        <label for="productId" class="form-label">Product</label>
+                        <select class="form-select" id="productId" name="productId" required>
+                            <option value="">Select a product</option>
+                            @foreach (var product in ViewBag.Products)
+                            {
+                                <option value="@product.Id">@product.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity (grams)</label>
+                        <input type="number" step="1" class="form-control" id="quantity" name="quantity" value="100" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add to Diary</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Food</h5>
+                    <div>
+                        <a href="@Url.Action("Index", new { date = date.AddDays(-1) })" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <a href="@Url.Action("Index", new { date = date.AddDays(1) })" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (Model.Intakes.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Calories</th>
+                                    <th>Protein</th>
+                                    <th>Fat</th>
+                                    <th>Carbs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var intake in Model.Intakes)
+                                {
+                                    <tr>
+                                        <td>@intake.Product.Name</td>
+                                        <td>
+                                            <form asp-action="EditIntakeQuantity" method="post" class="d-flex align-items-center">
+                                                <input type="hidden" name="id" value="@intake.Id" />
+                                                <input type="number" name="quantity" min="1" step="1"
+                                                       value="@intake.Quantity.ToString("F0")"
+                                                       class="form-control form-control-sm me-1" style="width: 70px;" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+
+
+
+
+                                        <td>@((int)(intake.Product.CaloriesPer100g * intake.Quantity / 100))</td>
+                                        <td>@((intake.Product.ProteinPer100g * intake.Quantity / 100).ToString("F1"))g</td>
+                                        <td>@((intake.Product.FatPer100g * intake.Quantity / 100).ToString("F1"))g</td>
+                                        <td>@((intake.Product.CarbsPer100g * intake.Quantity / 100).ToString("F1"))g</td>
+                                        <td>
+                                            <form asp-action="RemoveIntake" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@intake.Id" />
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No food logged for this day.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('intakeDate').addEventListener('change', function () {
+            // Оновити URL при зміні дати
+            const selectedDate = this.value;
+            window.location.href = `@Url.Action("Index")?date=${selectedDate}`;
+        });
+    </script>
+}

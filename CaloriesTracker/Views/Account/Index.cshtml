@@ -1,0 +1,32 @@
+﻿@{
+    ViewData["Title"] = "Account Settings";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Account Settings</h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="UpdateDailyGoal" method="post">
+                    <div class="mb-3">
+                        <label for="newGoal" class="form-label">Daily Calorie Goal</label>
+                        <input type="number" class="form-control" id="newGoal" name="newGoal"
+                               value="@(ViewBag.CurrentGoal ?? 2000)" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Goal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card mt-4">
+        <div class="card-header bg-danger text-white">
+            Danger Zone
+        </div>
+        <div class="card-body">
+            <p>You can permanently delete your account and all associated data.</p>
+            <a asp-action="DeleteAccount" class="btn btn-outline-danger">Delete Account</a>
+        </div>
+    </div>
+</div>

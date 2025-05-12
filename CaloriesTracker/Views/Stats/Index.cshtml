@@ -1,0 +1,160 @@
+﻿@model CaloriesTracker.Models.ViewModels.StatsViewModel
+
+
+@{
+    ViewData["Title"] = "Your Statistics";
+}
+
+<div class="container mt-4">
+    <h2>Your Nutrition Statistics</h2>
+
+    <div class="btn-group mb-4">
+        <a asp-action="Index" asp-route-period="2weeks"
+           class="btn @(Model.SelectedPeriod == "2weeks" ? "btn-primary" : "btn-outline-primary")">
+            Last 2 Weeks
+        </a>
+        <a asp-action="Index" asp-route-period="month"
+           class="btn @(Model.SelectedPeriod == "month" ? "btn-primary" : "btn-outline-primary")">
+            Last Month
+        </a>
+        <a asp-action="Index" asp-route-period="year"
+           class="btn @(Model.SelectedPeriod == "year" ? "btn-primary" : "btn-outline-primary")">
+            Last Year
+        </a>
+    </div>
+
+    @{
+        var activeStats = Model.SelectedPeriod switch
+        {
+            "month" => Model.MonthStats,
+            "year" => Model.YearStats,
+            _ => Model.TwoWeeksStats
+        };
+    }
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@activeStats.PeriodName</h5>
+                    <div class="mb-3">
+                        <h6>Total Calories</h6>
+                        <p class="display-6">@activeStats.TotalCalories.ToString("N0")</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Average Daily</h6>
+                        <p class="display-6">@activeStats.AverageDailyCalories.ToString("N0")</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Days Tracked</h6>
+                        <p class="display-6">@activeStats.DaysTracked</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+           
+
+
+
+
+
+
+
+
+
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Calorie Trend</h5>
+                            <canvas id="calorieTrendChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Macronutrients Ratio</h5>
+                            <canvas id="macroChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Coming Soon: Charts</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Дані з сервера
+            var calorieTrendData = @Html.Raw(Json.Serialize(Model.TwoWeeksStats.CalorieTrendData));
+            var macroData = @Html.Raw(Json.Serialize(Model.TwoWeeksStats.MacroNutrientsData));
+
+            // Графік тренду калорій
+            var ctx1 = document.getElementById('calorieTrendChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: calorieTrendData.map(x => new Date(x.date).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Calories per day',
+                        data: calorieTrendData.map(x => x.calories),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Графік співвідношення макроелементів
+            var ctx2 = document.getElementById('macroChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein', 'Fat', 'Carbs'],
+                    datasets: [{
+                        data: [macroData.protein, macroData.fat, macroData.carbs],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

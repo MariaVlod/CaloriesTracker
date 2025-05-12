@@ -1,0 +1,103 @@
+﻿@model List<Product>
+
+@{
+    ViewData["Title"] = "My Products";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>My Products</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Add New Product</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Add" method="post">
+                    <div class="mb-3">
+                        <label for="Name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="Name" name="Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="CaloriesPer100g" class="form-label">Calories per 100g</label>
+                        <input type="number" step="0.1" class="form-control" id="CaloriesPer100g" name="CaloriesPer100g" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ProteinPer100g" class="form-label">Protein per 100g</label>
+                        <input type="number" step="0.1" class="form-control" id="ProteinPer100g" name="ProteinPer100g" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="FatPer100g" class="form-label">Fat per 100g</label>
+                        <input type="number" step="0.1" class="form-control" id="FatPer100g" name="FatPer100g" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="CarbsPer100g" class="form-label">Carbs per 100g</label>
+                        <input type="number" step="0.1" class="form-control" id="CarbsPer100g" name="CarbsPer100g" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Product List</h5>
+                <div class="mb-3">
+                    <a asp-action="Index" asp-route-sortBy="Name" class="btn btn-outline-secondary btn-sm">Sort by Name</a>
+                    <a asp-action="Index" asp-route-sortBy="Calories" class="btn btn-outline-secondary btn-sm">Sort by Calories</a>
+                    <a asp-action="Index" asp-route-sortBy="Protein" class="btn btn-outline-secondary btn-sm">Sort by Protein</a>
+                </div>
+
+            </div>
+            <div class="card-body">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Calories</th>
+                                    <th>Protein</th>
+                                    <th>Fat</th>
+                                    <th>Carbs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model)
+                                {
+                                    <tr>
+                                        <td>@product.Name</td>
+                                        <td>@product.CaloriesPer100g.ToString("F1")</td>
+                                        <td>@product.ProteinPer100g.ToString("F1")</td>
+                                        <td>@product.FatPer100g.ToString("F1")</td>
+                                        <td>@product.CarbsPer100g.ToString("F1")</td>
+                                        <td>
+                                            <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-action="ConfirmDelete" asp-route-id="@product.Id" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No products added yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

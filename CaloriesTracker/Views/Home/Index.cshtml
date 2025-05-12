@@ -1,0 +1,107 @@
+@using CaloriesTracker.Services
+@model CalorieService.DailySummary
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+@if (Model == null)
+{
+    <div class="alert alert-warning">No data available for today.</div>
+    return;
+}
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Today's Summary</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Calories</h5>
+                <div class="progress mb-3">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: @(Math.Min(100, (int)(Model.TotalCalories / Model.DailyGoal * 100)))%">
+                        @((int)Model.TotalCalories)/@((int)Model.DailyGoal)
+                    </div>
+                </div>
+                <p class="card-text">
+                    @if (Model.TotalCalories > Model.DailyGoal)
+                    {
+                        <span class="text-danger">You've exceeded your daily goal by @((int)(Model.TotalCalories - Model.DailyGoal)) calories</span>
+                    }
+                    else
+                    {
+                        <span class="text-success">You have @((int)(Model.DailyGoal - Model.TotalCalories)) calories remaining</span>
+                    }
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Macronutrients</h5>
+                <div class="row">
+                    <div class="col-4 text-center">
+                        <h6>Protein</h6>
+                        <p class="text-primary">@Model.TotalProtein.ToString("F1")g</p>
+                    </div>
+                    <div class="col-4 text-center">
+                        <h6>Fat</h6>
+                        <p class="text-warning">@Model.TotalFat.ToString("F1")g</p>
+                    </div>
+                    <div class="col-4 text-center">
+                        <h6>Carbs</h6>
+                        <p class="text-success">@Model.TotalCarbs.ToString("F1")g</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Consumption</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Intakes.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Calories</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var intake in Model.Intakes.OrderByDescending(i => i.Date))
+                                {
+                                    <tr>
+                                        <td>@intake.Product.Name</td>
+                                        <td>@intake.Quantity.ToString("F1")g</td>
+                                        <td>@((int)(intake.Product.CaloriesPer100g * intake.Quantity / 100))</td>
+                                        <td>@intake.Date.ToString("HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No food logged today yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
