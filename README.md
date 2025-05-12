@@ -107,7 +107,7 @@ Only necessary functionality is implemented:
 - **Service Layer** – encapsulates business logic - [CalorieService](./CaloriesTracker/Services/CalorieService.cs), [ProductService](./CaloriesTracker/Services/ProductService.cs), [UserService](./CaloriesTracker/Services/UserService.cs), [ReportService](./CaloriesTracker/Services/ReportService.cs), [FileService](./CaloriesTracker/Services/FileService.cs) 
 - **Repository Pattern** – data access abstraction using EF Core
 - **Dependency Injection** – via constructor injection
-- **MVC (Model-View-Controller)** – core architectural pattern - [Models](./CaloriesTracker/Models/), [Controllers](./CaloriesTracker/Controllers/), [Views](./Views/)
+- **MVC (Model-View-Controller)** – core architectural pattern - [Models](./CaloriesTracker/Models/), [Controllers](./CaloriesTracker/Controllers/), [Views](./CaloriesTracker/Views/)
 - **Facade** – hides complex logic and provides simplified methods to the UI or controller - Example: [ReportService](./CaloriesTracker/Services/ReportService.cs) generates complex aggregated data through one method
 - **Dependency Injection** – used to inject services and repositories via constructors - [Program.cs](./CaloriesTracker/Program.cs) – service registration in `builder.Services
 ## 🔧 Refactoring Techniques
