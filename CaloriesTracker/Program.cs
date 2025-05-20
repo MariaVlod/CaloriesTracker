@@ -1,57 +1,46 @@
 using CaloriesTracker.Data;
 using CaloriesTracker.Models;
 using CaloriesTracker.Services;
+using CaloriesTracker.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-    new MySqlServerVersion(new Version(8, 0, 21))));
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 21))
+    )
+);
 
+// Configure Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
-    // Налаштування пароля
-    options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-
-    // Налаштування логіна
-    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-
-builder.Services.AddScoped<UserService>(provider =>
-{
-    var userManager = provider.GetRequiredService<UserManager<User>>();
-    var signInManager = provider.GetRequiredService<SignInManager<User>>();
-    var dbContext = provider.GetRequiredService<AppDbContext>();
-    var logger = provider.GetRequiredService<ILogger<UserService>>();
-
-    return new UserService(userManager, signInManager, dbContext, logger);
-});
+// Register services
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CalorieService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<FileService>();
 
-builder.Services.AddControllersWithViews()
-    .AddViewOptions(options =>
-    {
-        options.HtmlHelperOptions.ClientValidationEnabled = true;
-    });
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -60,9 +49,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -75,32 +62,38 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Create database and apply migrations
-using (var scope = app.Services.CreateScope())
+// Initialize database
+await InitializeDatabaseAsync(app);
+
+app.Run();
+
+async Task InitializeDatabaseAsync(WebApplication app)
 {
+    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
+    
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
+
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        var adminEmail = "admin@example.com";
+        
+        if (await userManager.FindByEmailAsync(adminEmail) == null)
+        {
+            var adminUser = new User 
+            { 
+                UserName = adminEmail,
+                Email = adminEmail,
+                DailyCalorieGoal = 2000
+            };
+            await userManager.CreateAsync(adminUser, "Admin123!");
+        }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while initializing the database");
     }
 }
-using (var scope = app.Services.CreateScope())
-{
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-    var adminEmail = "admin@example.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
-    if (adminUser == null)
-    {
-        adminUser = new User { UserName = adminEmail, Email = adminEmail };
-        await userManager.CreateAsync(adminUser, "Admin123!");
-    }
-}
-
-app.Run();
