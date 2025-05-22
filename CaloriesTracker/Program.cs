@@ -35,6 +35,7 @@ builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CalorieService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<FileService>();
+builder.Services.AddScoped<ICalorieCalculatorService, CalorieCalculatorService>();
 
 builder.Services.AddControllersWithViews();
 
