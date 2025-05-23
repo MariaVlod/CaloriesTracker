@@ -1,4 +1,4 @@
-﻿using static CaloriesTracker.Services.CalorieService;
+﻿using CaloriesTracker.Models.Stats;
 
 namespace CaloriesTracker.Models.ViewModels
 {
