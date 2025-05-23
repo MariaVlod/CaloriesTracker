@@ -1,5 +1,6 @@
 ﻿using CaloriesTracker.Data;
 using CaloriesTracker.Models;
+using CaloriesTracker.Models.Stats;
 using Microsoft.EntityFrameworkCore;
 
 namespace CaloriesTracker.Services
@@ -135,44 +136,6 @@ namespace CaloriesTracker.Services
             intake.Date = DateTime.Now;
             await _context.SaveChangesAsync();
             return true;
-        }
-
-
-        public class UserStats
-        {
-            public decimal TotalCalories { get; set; }
-            public decimal AverageDailyCalories { get; set; }
-            public int DaysTracked { get; set; }
-            public string PeriodName { get; set; }
-            public List<CalorieTrendPoint> CalorieTrendData { get; set; } = new();
-            public MacroNutrients MacroNutrientsData { get; set; }
-            public decimal TotalProtein { get; set; }
-            public decimal TotalFat { get; set; }
-            public decimal TotalCarbs { get; set; }
-        }
-
-        public class CalorieTrendPoint
-        {
-            public DateTime Date { get; set; }
-            public decimal Calories { get; set; }
-        }
-
-        public class MacroNutrients
-        {
-            public decimal Protein { get; set; }
-            public decimal Fat { get; set; }
-            public decimal Carbs { get; set; }
-        }
-
-        public class DailySummary
-        {
-            public DateTime Date { get; set; }
-            public decimal TotalCalories { get; set; }
-            public decimal TotalProtein { get; set; }
-            public decimal TotalFat { get; set; }
-            public decimal TotalCarbs { get; set; }
-            public decimal DailyGoal { get; set; }
-            public List<DailyIntake> Intakes { get; set; } = new();
         }
     }
 }
