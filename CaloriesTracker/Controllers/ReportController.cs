@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using CaloriesTracker.Models;
+using Microsoft.AspNetCore.Mvc;
 using CaloriesTracker.Services;
+using CaloriesTracker.Models.ViewModels;
 
 namespace CaloriesTracker.Controllers
 {
@@ -18,13 +21,12 @@ namespace CaloriesTracker.Controllers
         [HttpGet]
         public async Task<IActionResult> Daily(DateTime? date)
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
             var viewDate = date ?? DateTime.Today;
-            var html = await _reportService.GenerateDailyReportHtmlAsync(userId, viewDate);
-
-            return Content(html, "text/html");
+            DailyReportViewModel vm = await _reportService.GetDailyReportAsync(userId, viewDate);
+            return View(vm);   
         }
     }
 }
