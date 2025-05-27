@@ -13,62 +13,53 @@ namespace CaloriesTracker.Controllers
         private readonly IUserService _userService;
         private readonly ILogger<AccountController> _logger;
 
-        public AccountController(
-            IUserService userService,
-            ILogger<AccountController> logger)
+        public AccountController(IUserService userService, ILogger<AccountController> logger)
         {
             _userService = userService;
             _logger = logger;
         }
 
         [HttpGet]
-        public IActionResult Register(double? calories = null)
+        public IActionResult Register(decimal? calories = null)
         {
-            var model = new RegisterViewModel 
+            var model = new RegisterViewModel
             {
-                DailyCalorieGoal = calories.HasValue ? (decimal)calories.Value : 2000
+                DailyCalorieGoal = calories ?? 2000m
             };
             return View(model);
         }
 
-        [HttpPost]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
 
             var result = await _userService.RegisterAsync(model);
-            
             if (result.Succeeded)
             {
-                _logger.LogInformation("User {Email} registered successfully.", model.Email);
-                await _userService.LoginAsync(model.Email, model.Password, false);
+                _logger.LogInformation("User {Email} registered.", model.Email);
+                await _userService.LoginAsync(model.Email, model.Password, rememberMe: false);
                 return RedirectToHome();
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-                _logger.LogWarning("Registration error for {Email}: {Error}", 
-                    model.Email, error.Description);
-            }
+            AddErrors(result.Errors, model.Email);
             return View(model);
         }
 
         [HttpGet]
-        public IActionResult Login(string? returnUrl = null)
+        public IActionResult Login(string? returnUrl)
         {
-            ViewData["ReturnUrl"] = returnUrl;
+            TempData["ReturnUrl"] = returnUrl;
             return View(new LoginViewModel());
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            ViewData["ReturnUrl"] = returnUrl;
+            string? returnUrl = TempData["ReturnUrl"] as string;
             if (!ModelState.IsValid) return View(model);
 
             var result = await _userService.LoginAsync(model.Email, model.Password, model.RememberMe);
-
             if (result.Succeeded)
             {
                 _logger.LogInformation("User {Email} logged in.", model.Email);
@@ -77,20 +68,20 @@ namespace CaloriesTracker.Controllers
 
             if (result.IsLockedOut)
             {
-                ModelState.AddModelError(string.Empty, 
-                    "Account locked out due to multiple failed attempts. Try again later.");
-                _logger.LogWarning("Account lockout for {Email}", model.Email);
+                ModelState.AddModelError(string.Empty,
+                    "Account is locked due to multiple failed login attempts.");
+                _logger.LogWarning("Lockout for {Email}.", model.Email);
             }
             else
             {
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                _logger.LogWarning("Invalid login attempt for {Email}", model.Email);
+                _logger.LogWarning("Invalid login attempt for {Email}.", model.Email);
             }
+
             return View(model);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _userService.LogoutAsync();
@@ -99,79 +90,76 @@ namespace CaloriesTracker.Controllers
         }
 
         [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateDailyGoal(decimal newGoal)
-        {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var result = await _userService.UpdateDailyGoalAsync(userId, newGoal);
-            
-            if (!result.Succeeded)
-            {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-                return View("Index");
-            }
-            return RedirectToHome();
-        }
-
-        [Authorize]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var userId = GetCurrentUserId();
+            string? userId = GetUserId();
             if (userId == null) return Unauthorized();
 
-            var currentGoal = await _userService.GetCurrentDailyGoalAsync(userId);
-            return View(new AccountSettingsViewModel { DailyCalorieGoal = currentGoal });
+            var goal = await _userService.GetCurrentDailyGoalAsync(userId);
+            var vm = new AccountSettingsViewModel { DailyCalorieGoal = goal };
+            return View(vm);
+        }
+
+        [Authorize]
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateDailyGoal(AccountSettingsViewModel model)
+        {
+            if (!ModelState.IsValid) return View("Index", model);
+
+            string? userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var result = await _userService.UpdateDailyGoalAsync(userId, model.DailyCalorieGoal);
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("User {UserId} updated daily goal to {Goal}.",
+                    userId, model.DailyCalorieGoal);
+                return RedirectToHome();
+            }
+
+            AddErrors(result.Errors, userId);
+            return View("Index", model);
         }
 
         [Authorize]
         [HttpGet]
-        public IActionResult DeleteAccount()
-        {
-            return View();
-        }
+        public IActionResult DeleteAccount() => View();
 
         [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAccountConfirmed()
         {
-            var userId = GetCurrentUserId();
+            string? userId = GetUserId();
             if (userId == null) return Unauthorized();
 
             var result = await _userService.DeleteUserAsync(userId);
             if (result.Succeeded)
             {
                 await _userService.LogoutAsync();
+                _logger.LogInformation("User {UserId} deleted their account.", userId);
                 return RedirectToHome();
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
+            AddErrors(result.Errors, userId);
             return View("DeleteAccount");
         }
+        private string? GetUserId() =>
+            User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        private string? GetCurrentUserId() => 
-            User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        private IActionResult RedirectToHome() =>
+            RedirectToAction(nameof(HomeController.Index), "Home");
 
-        private IActionResult RedirectToHome() => 
-            RedirectToAction("Index", "Home");
+        private IActionResult RedirectToLocal(string? returnUrl) =>
+            Url.IsLocalUrl(returnUrl) ? Redirect(returnUrl) : RedirectToHome();
 
-        private IActionResult RedirectToLocal(string? returnUrl)
+        private void AddErrors(IEnumerable<IdentityError> errors, string keyContext)
         {
-            if (Url.IsLocalUrl(returnUrl))
+            foreach (var err in errors)
             {
-                return Redirect(returnUrl);
+                ModelState.AddModelError(string.Empty, err.Description);
+                _logger.LogWarning("Error ({Context}): {Description}", keyContext, err.Description);
             }
-            return RedirectToHome();
         }
     }
 }
