@@ -36,6 +36,8 @@ builder.Services.AddScoped<CalorieService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<FileService>();
 builder.Services.AddScoped<ICalorieCalculatorService, CalorieCalculatorService>();
+builder.Services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
+builder.Services.AddScoped<CalorieService>();
 
 builder.Services.AddControllersWithViews();
 
