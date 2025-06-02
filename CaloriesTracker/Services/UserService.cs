@@ -1,5 +1,6 @@
 ﻿using CaloriesTracker.Data;
 using CaloriesTracker.Models;
+using CaloriesTracker.Models.Stats;
 using CaloriesTracker.Models.ViewModels.Account;
 using CaloriesTracker.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -101,5 +102,7 @@ namespace CaloriesTracker.Services
                 throw;
             }
         }
+
+      
     }
 }
