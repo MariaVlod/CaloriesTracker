@@ -1,6 +1,5 @@
-﻿using CaloriesTracker.Data;
+using CaloriesTracker.Data;
 using CaloriesTracker.Models;
-using CaloriesTracker.Models.Stats;
 using CaloriesTracker.Models.ViewModels.Account;
 using CaloriesTracker.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -23,86 +22,84 @@ namespace CaloriesTracker.Services
             AppDbContext context,
             ILogger<UserService> logger)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _context = context;
-            _logger = logger;
+            _userManager    = userManager;
+            _signInManager  = signInManager;
+            _context        = context;
+            _logger         = logger;
         }
 
-        public async Task<IdentityResult> RegisterAsync(RegisterViewModel model)
+        public Task<IdentityResult> RegisterAsync(RegisterViewModel model)
         {
             var user = new User
             {
                 UserName = model.Email,
-                Email = model.Email,
+                Email    = model.Email,
                 DailyCalorieGoal = model.DailyCalorieGoal
             };
-            return await _userManager.CreateAsync(user, model.Password);
+            return _userManager.CreateAsync(user, model.Password);
         }
 
-        public async Task<SignInResult> LoginAsync(string email, string password, bool rememberMe)
-        {
-            return await _signInManager.PasswordSignInAsync(
-                email, password, rememberMe, lockoutOnFailure: true);
-        }
+        public Task<SignInResult> LoginAsync(string email, string password, bool rememberMe)
+            => _signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: true);
 
-        public async Task LogoutAsync()
-        {
-            await _signInManager.SignOutAsync();
-        }
+        public Task LogoutAsync()
+            => _signInManager.SignOutAsync();
 
-        public async Task<User?> GetUserAsync(string userId)
-        {
-            return await _userManager.FindByIdAsync(userId);
-        }
+        public Task<User?> GetUserAsync(string userId)
+            => _userManager.FindByIdAsync(userId);
 
         public async Task<decimal> GetCurrentDailyGoalAsync(string userId)
         {
-            var user = await GetUserAsync(userId);
-            return user?.DailyCalorieGoal ?? 2000;
+            var user = await GetUserOrThrowAsync(userId);
+            return user.DailyCalorieGoal;
         }
 
         public async Task<IdentityResult> UpdateDailyGoalAsync(string userId, decimal newGoal)
         {
-            var user = await GetUserAsync(userId);
-            if (user == null)
-            {
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-            }
-
+            var user = await GetUserOrThrowAsync(userId);
             user.DailyCalorieGoal = newGoal;
             return await _userManager.UpdateAsync(user);
         }
 
         public async Task<IdentityResult> DeleteUserAsync(string userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var user = await GetUserOrThrowAsync(userId);
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                var user = await GetUserAsync(userId);
-                if (user == null)
-                {
-                    return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-                }
-
-                await _context.Products.Where(p => p.UserId == userId).ExecuteDeleteAsync();
-                await _context.DailyIntakes.Where(d => d.UserId == userId).ExecuteDeleteAsync();
-                await _context.FileRecords.Where(f => f.UserId == userId).ExecuteDeleteAsync();
+                await DeleteUserRelatedDataAsync(userId);
 
                 var result = await _userManager.DeleteAsync(user);
                 if (result.Succeeded)
-                {
-                    await transaction.CommitAsync();
-                }
+                    await tx.CommitAsync();
+
                 return result;
             }
-            catch
+            catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error deleting user {UserId}", userId);
+                await tx.RollbackAsync();
                 throw;
             }
         }
 
-      
+
+        private async Task<User> GetUserOrThrowAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"User with ID '{userId}' not found.");
+            return user;
+        }
+
+        private Task DeleteUserRelatedDataAsync(string userId)
+        {
+            return Task.WhenAll(
+                _context.Products.Where(p => p.UserId == userId).ExecuteDeleteAsync(),
+                _context.DailyIntakes.Where(d => d.UserId == userId).ExecuteDeleteAsync(),
+                _context.FileRecords.Where(f => f.UserId == userId).ExecuteDeleteAsync()
+            );
+        }
     }
 }
